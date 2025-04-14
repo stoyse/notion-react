@@ -95,6 +95,33 @@ def rename_table():
     finally:
         conn.close()
 
+# Get all table names
+@app.route('/api/tables', methods=['GET'])
+def get_tables():
+    """Fetch all table names from the database."""
+    conn = get_db_connection()
+    try:
+        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        return jsonify([table['name'] for table in tables])
+    finally:
+        conn.close()
+
+# Delete a table
+@app.route('/api/tables/<table>', methods=['DELETE'])
+def delete_table(table):
+    table = sanitize_table_name(table)  # Sanitize the table name
+    conn = get_db_connection()
+    try:
+        conn.execute(f'DROP TABLE IF EXISTS {table}')
+        conn.commit()
+        print(f"Table {table} deleted.")  # Debugging log
+        return jsonify({'message': f'Table {table} deleted successfully.'}), 200
+    except sqlite3.Error as e:
+        print("Database Error:", e)  # Debugging log
+        return jsonify({'error': 'Failed to delete table due to a database error.'}), 500
+    finally:
+        conn.close()
+
 # Initialize the database and start the server
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3001, debug=True)
